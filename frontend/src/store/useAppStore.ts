@@ -1,0 +1,170 @@
+import { create } from "zustand";
+import type { ThinkingStep, QueryResult } from "@/types";
+
+export type DataSource = "csv" | "database" | "json" | null;
+
+export interface UploadedFileInfo {
+  file: File;
+  tableName: string;
+  rows: number;
+  columns: number;
+}
+
+export interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  queryResult?: QueryResult;
+  thinkingSteps?: ThinkingStep[];
+}
+
+export type { ThinkingStep, QueryResult };
+export type { MetricCard } from "@/types";
+export type { ChartType } from "@/types";
+
+export interface ChartData {
+  type: "line" | "bar" | "pie";
+  title: string;
+  data: Record<string, unknown>[];
+  xKey?: string;
+  yKey?: string;
+  nameKey?: string;
+  valueKey?: string;
+}
+
+interface AppState {
+  dataSource: DataSource;
+  /** Legacy single-file compat */
+  uploadedFile: File | null;
+  uploadedFileName: string | null;
+  /** Multi-file: all uploaded files with their table info */
+  uploadedFiles: UploadedFileInfo[];
+  sessionId: string;
+  datasetId: string;
+  messages: Message[];
+  isLoading: boolean;
+  isUploading: boolean;
+  uploadError: string | null;
+  uploadInfo: { rows: number; columns: number } | null;
+  suggestedQuestions: string[];
+  thinkingSteps: ThinkingStep[];
+  sidebarCollapsed: boolean;
+  backendAvailable: boolean;
+
+  setDataSource: (source: DataSource) => void;
+  setUploadedFile: (file: File | null) => void;
+  setUploadedFiles: (
+    files:
+      | UploadedFileInfo[]
+      | ((prev: UploadedFileInfo[]) => UploadedFileInfo[])
+  ) => void;
+  addUploadedFile: (info: UploadedFileInfo) => void;
+  addMessage: (msg: Message) => void;
+  setMessages: (messages: Message[]) => void;
+  updateMessage: (id: string, patch: Partial<Message>) => void;
+  setLoading: (v: boolean) => void;
+  setUploading: (v: boolean) => void;
+  setUploadError: (msg: string | null) => void;
+  setUploadInfo: (info: { rows: number; columns: number } | null) => void;
+  setSuggestedQuestions: (qs: string[]) => void;
+  setThinkingSteps: (steps: ThinkingStep[]) => void;
+  addThinkingStep: (step: ThinkingStep) => void;
+  updateThinkingStep: (id: string, patch: Partial<ThinkingStep>) => void;
+  clearThinkingSteps: () => void;
+  toggleSidebar: () => void;
+  clearChat: () => void;
+  setBackendAvailable: (v: boolean) => void;
+  resetForNewDataset: () => void;
+  resetSession: () => void;
+}
+
+function generateSessionId() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+export const useAppStore = create<AppState>((set) => ({
+  dataSource: null,
+  uploadedFile: null,
+  uploadedFileName: null,
+  uploadedFiles: [],
+  sessionId: generateSessionId(),
+  datasetId: generateSessionId(),
+  messages: [],
+  isLoading: false,
+  isUploading: false,
+  uploadError: null,
+  uploadInfo: null,
+  suggestedQuestions: [],
+  thinkingSteps: [],
+  sidebarCollapsed: false,
+  backendAvailable: false,
+
+  setDataSource: (source) => set({ dataSource: source }),
+  setUploadedFile: (file) =>
+    set({ uploadedFile: file, uploadedFileName: file?.name ?? null }),
+  setUploadedFiles: (files) =>
+    set((s) => ({
+      uploadedFiles:
+        typeof files === "function"
+          ? files(s.uploadedFiles)
+          : files,
+    })),
+  addUploadedFile: (info) =>
+    set((s) => ({ uploadedFiles: [...s.uploadedFiles, info] })),
+  addMessage: (msg) => set((s) => ({ messages: [...s.messages, msg] })),
+  setMessages: (messages) => set({ messages }),
+  updateMessage: (id, patch) =>
+    set((s) => ({
+      messages: s.messages.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    })),
+  setLoading: (v) => set({ isLoading: v }),
+  setUploading: (v) => set({ isUploading: v }),
+  setUploadError: (msg) => set({ uploadError: msg }),
+  setUploadInfo: (info) => set({ uploadInfo: info }),
+  setSuggestedQuestions: (qs) => set({ suggestedQuestions: qs }),
+  setThinkingSteps: (steps) => set({ thinkingSteps: steps }),
+  addThinkingStep: (step) =>
+    set((s) => ({ thinkingSteps: [...s.thinkingSteps, step] })),
+  updateThinkingStep: (id, patch) =>
+    set((s) => ({
+      thinkingSteps: s.thinkingSteps.map((step) =>
+        step.id === id ? { ...step, ...patch } : step
+      ),
+    })),
+  clearThinkingSteps: () => set({ thinkingSteps: [] }),
+  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+  clearChat: () => set({ messages: [], thinkingSteps: [] }),
+  setBackendAvailable: (v) => set({ backendAvailable: v }),
+  resetForNewDataset: () =>
+    set({
+      messages: [],
+      thinkingSteps: [],
+      isLoading: false,
+      isUploading: false,
+      uploadError: null,
+      uploadInfo: null,
+      suggestedQuestions: [],
+      dataSource: null,
+      uploadedFile: null,
+      uploadedFileName: null,
+      uploadedFiles: [],
+      datasetId: generateSessionId(),
+    }),
+  resetSession: () =>
+    set({
+      messages: [],
+      thinkingSteps: [],
+      isLoading: false,
+      isUploading: false,
+      uploadError: null,
+      uploadInfo: null,
+      suggestedQuestions: [],
+      dataSource: null,
+      uploadedFile: null,
+      uploadedFileName: null,
+      uploadedFiles: [],
+      sessionId: generateSessionId(),
+      datasetId: generateSessionId(),
+    }),
+}));
