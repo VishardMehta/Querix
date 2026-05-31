@@ -2,6 +2,7 @@
   <img src="assets/LogoQuerix.png" alt="Querix Logo" width="600" />
 </p>
 
+
 <p align="center">
   <strong>AI-Powered Data Analytics — Ask questions, get answers.</strong>
 </p>
